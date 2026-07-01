@@ -1,5 +1,12 @@
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+} from "react-native";
+import { router } from "expo-router";
 
 import AuthCard from "@/presentation/components/AuthCard";
 import Button from "@/presentation/components/Button";
@@ -12,12 +19,36 @@ import { Spacing } from "@/core/theme/spacing";
 import { Typography } from "@/core/theme/typography";
 import { Fonts } from "@/core/theme/fonts";
 
+import { login } from "@/data/services/authService";
+import { useAuthStore } from "@/store/authStore";
+
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  function handleLogin() {
-    console.log("Login");
+  const { setUser, loading, setLoading } = useAuthStore();
+
+  async function handleLogin() {
+    if (!email || !password) {
+      Alert.alert("Oops", "Please fill in all fields.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const userCredential = await login(email, password);
+
+      setUser(userCredential.user);
+
+      Alert.alert("Success", "Login successful!");
+
+      router.replace("/(tabs)/feed");
+    } catch (error: any) {
+      Alert.alert("Login Failed", error.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -27,36 +58,53 @@ export default function LoginScreen() {
       <AuthCard>
         <Text style={styles.title}>Welcome Back</Text>
 
-        <Text style={styles.subtitle}>Sign in to your account</Text>
+        <Text style={styles.subtitle}>
+          Sign in to your account
+        </Text>
 
         <View style={{ height: 30 }} />
 
         <Input
-            icon="mail-outline"
-            placeholder="Email Address"
-            value={email}
-            onChangeText={setEmail}
+          icon="mail-outline"
+          placeholder="Email Address"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
         />
 
         <Input
-            icon="lock-closed-outline"
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
+          icon="lock-closed-outline"
+          placeholder="Password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
         />
 
-        <TouchableOpacity>
-          <Text style={styles.forgot}>Forgot Password?</Text>
+        <TouchableOpacity
+          onPress={() => router.push("/forgot-password")}
+        >
+          <Text style={styles.forgot}>
+            Forgot Password?
+          </Text>
         </TouchableOpacity>
 
-        <Button title="Login" onPress={handleLogin} />
+        <Button
+            title="Login"
+            onPress={handleLogin}
+            loading={loading}
+        />
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account?</Text>
+          <Text style={styles.footerText}>
+            Don't have an account?
+          </Text>
 
-          <TouchableOpacity>
-            <Text style={styles.register}>Register</Text>
+          <TouchableOpacity
+            onPress={() => router.push("/register")}
+          >
+            <Text style={styles.register}>
+              Register
+            </Text>
           </TouchableOpacity>
         </View>
       </AuthCard>
