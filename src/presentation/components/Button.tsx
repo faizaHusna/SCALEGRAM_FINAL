@@ -6,8 +6,8 @@ import {
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
-
 import { Colors } from "@/core/theme/colors";
+import { Gradients } from "@/core/theme/gradients";
 
 interface Props {
   title: string;
@@ -24,10 +24,7 @@ export default function Button({
       onPress={onPress}
     >
       <LinearGradient
-        colors={[
-          Colors.light.gradientStart,
-          Colors.light.gradientEnd,
-        ]}
+        colors={Gradients.button}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
         style={styles.button}

@@ -4,12 +4,13 @@ import { LinearGradient } from "expo-linear-gradient";
 
 import Wave from "./Wave";
 import { Fonts } from "@/core/theme/fonts";
+import { Gradients } from "@/core/theme/gradients";
 
 export default function GradientHeader() {
   return (
     <View>
       <LinearGradient
-        colors={["#8B5CF6", "#7C3AED", "#6366F1"]}
+        colors={Gradients.primary}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
