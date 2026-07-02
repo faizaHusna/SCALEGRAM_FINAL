@@ -1,4 +1,5 @@
 import { uploadImage } from "./cloudinaryService";
+import { addPost } from "../repositories/postRepository";
 
 export async function uploadPost(
   image: string,
@@ -6,8 +7,13 @@ export async function uploadPost(
 ) {
   const imageUrl = await uploadImage(image);
 
-  console.log("Image URL:", imageUrl);
-  console.log("Caption:", caption);
+  addPost({
+    id: Date.now().toString(),
+    username: "Syifa",
+    image: imageUrl,
+    caption,
+    likes: 0,
+  });
 
   return imageUrl;
 }

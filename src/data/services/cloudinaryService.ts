@@ -1,27 +1,31 @@
+import * as FileSystem from "expo-file-system";
+
 export async function uploadImage(imageUri: string) {
   console.log("Image URI:", imageUri);
 
-  const data = new FormData();
+  const cloudName = "de9bhugsj";
+  const uploadPreset = "e87zapml";
 
-  data.append("file", {
-    uri: imageUri,
-    type: "image/jpeg",
-    name: "photo.jpg",
-  } as any);
-
-  data.append("upload_preset", "e87zapml");
-
-  const response = await fetch(
-    "https://api.cloudinary.com/v1_1/de9bhugsj/image/upload",
+  const response = await FileSystem.uploadAsync(
+    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+    imageUri,
     {
-      method: "POST",
-      body: data,
+      httpMethod: "POST",
+      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
+      fieldName: "file",
+      parameters: {
+        upload_preset: uploadPreset,
+      },
     }
   );
 
-  const result = await response.json();
+  const result = JSON.parse(response.body);
 
-  console.log(result);
+  console.log("Cloudinary Result:", result);
+
+  if (!result.secure_url) {
+    throw new Error(result.error?.message || "Upload failed");
+  }
 
   return result.secure_url;
 }

@@ -1,5 +1,6 @@
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useCallback, useState } from "react";
 
 import Screen from "@/presentation/components/Screen";
 import StoryItem from "@/presentation/components/StoryItem";
@@ -7,6 +8,7 @@ import PostCard from "@/presentation/components/PostCard";
 
 import { Colors } from "@/core/theme/colors";
 import { Fonts } from "@/core/theme/fonts";
+import { getPosts } from "@/data/repositories/postRepository";
 
 const stories = [
   { id: "1", username: "You" },
@@ -17,28 +19,10 @@ const stories = [
   { id: "6", username: "Kevin" },
 ];
 
-const posts = [
-  {
-    id: "1",
-    username: "Syifa",
-    caption: "Beautiful sunset today 🌅",
-    likes: 125,
-  },
-  {
-    id: "2",
-    username: "Faiza",
-    caption: "Coffee first ☕",
-    likes: 93,
-  },
-  {
-    id: "3",
-    username: "Hani",
-    caption: "Weekend vibes ✨",
-    likes: 201,
-  },
-];
 
 export default function FeedScreen() {
+  const posts = getPosts();
+
   return (
     <Screen>
       {/* Header */}
@@ -77,15 +61,21 @@ export default function FeedScreen() {
 
       {/* Posts */}
       <View style={styles.posts}>
-        {posts.map((post) => (
-          <PostCard
-            key={post.id}
-            username={post.username}
-            caption={post.caption}
-            likes={post.likes}
-          />
-        ))}
-      </View>
+  {posts.length === 0 ? (
+    <Text style={styles.empty}>
+      No posts yet.
+    </Text>
+  ) : (
+    posts.map((post) => (
+      <PostCard
+        key={post.id}
+        username={post.username}
+        caption={post.caption}
+        likes={post.likes}
+      />
+    ))
+  )}
+</View>
     </Screen>
   );
 }
@@ -126,4 +116,11 @@ const styles = StyleSheet.create({
   posts: {
     paddingBottom: 40,
   },
+
+  empty: {
+  marginTop: 40,
+  textAlign: "center",
+  color: "#999",
+  fontFamily: Fonts.medium,
+},
 });

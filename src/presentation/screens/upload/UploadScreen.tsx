@@ -6,7 +6,10 @@ import {
   View,
   Image,
   TextInput,
+  Alert,
 } from "react-native";
+
+import { router } from "expo-router";
 
 import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
@@ -97,16 +100,33 @@ export default function UploadScreen() {
 
       <Button
   title="Upload Post"
-    onPress={async () => {
-        if (!image) return;
+  onPress={async () => {
+    if (!image) {
+      Alert.alert("Oops", "Please choose an image first.");
+      return;
+    }
 
-        const url = await uploadPost(
-            image,
-            caption
-        );
+    try {
+      await uploadPost(image, caption);
 
-        console.log(url);
-    }}
+      Alert.alert(
+        "Success",
+        "Your post has been uploaded!"
+      );
+
+      setImage(null);
+      setCaption("");
+
+      router.replace("/feed");
+    } catch (error) {
+      console.log(error);
+
+      Alert.alert(
+        "Upload Failed",
+        "Something went wrong."
+      );
+    }
+  }}
 />
     </Screen>
   );

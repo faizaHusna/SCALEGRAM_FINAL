@@ -1,10 +1,11 @@
 import React, { ReactNode } from "react";
 import {
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   StatusBar,
 } from "react-native";
+
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Colors } from "@/core/theme/colors";
 
@@ -40,6 +41,8 @@ const styles = StyleSheet.create({
 
   content:{
     flexGrow:1,
+    paddingHorizontal: 20,
+    paddingBottom: 120,
   }
 
 });

@@ -12,9 +12,9 @@ export default function TabsLayout() {
         tabBarShowLabel: false,
 
         tabBarStyle: {
-          height: 72,
+          height: 85,
           paddingTop: 8,
-          paddingBottom: 8,
+          paddingBottom: 18,
 
           borderTopWidth: 0,
 
