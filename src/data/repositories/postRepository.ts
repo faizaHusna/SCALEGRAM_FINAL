@@ -1,17 +1,27 @@
-export interface Post {
-  id: string;
-  username: string;
-  image: string;
-  caption: string;
-  likes: number;
-}
+import { IPostRepository } from "@/domain/repositories/IPostRepository";
 
-let posts: Post[] = [];
+import { Post } from "@/domain/entities/Post";
 
-export function getPosts() {
-  return posts;
-}
+import {
+  createPost,
+  getPosts,
+} from "../services/postServices";
 
-export function addPost(post: Post) {
-  posts.unshift(post);
+export class PostRepository
+implements IPostRepository {
+
+  async createPost(
+    post: Omit<Post, "id">
+  ) {
+
+    return createPost(post);
+
+  }
+
+  async getPosts() {
+
+    return getPosts();
+
+  }
+
 }
