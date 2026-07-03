@@ -1,31 +1,59 @@
-import * as FileSystem from "expo-file-system";
+const CLOUD_NAME = "de9bhugsj";
+const UPLOAD_PRESET = "e87zapml";
 
-export async function uploadImage(imageUri: string) {
-  console.log("Image URI:", imageUri);
+export async function uploadImage(
+  imageUri: string
+): Promise<string> {
+  try {
+    const formData = new FormData();
 
-  const cloudName = "de9bhugsj";
-  const uploadPreset = "e87zapml";
+    const filename =
+      imageUri.split("/").pop() || "photo.jpg";
 
-  const response = await FileSystem.uploadAsync(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    imageUri,
-    {
-      httpMethod: "POST",
-      uploadType: FileSystem.FileSystemUploadType.MULTIPART,
-      fieldName: "file",
-      parameters: {
-        upload_preset: uploadPreset,
-      },
+    const ext =
+      filename.split(".").pop() || "jpg";
+
+    formData.append("file", {
+      uri: imageUri,
+      name: filename,
+      type: `image/${ext}`,
+    } as any);
+
+    formData.append(
+      "upload_preset",
+      UPLOAD_PRESET
+    );
+
+    console.log("Uploading image...");
+    console.log(imageUri);
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    const result = await response.json();
+
+    console.log("Cloudinary:", result);
+
+    if (!response.ok) {
+      throw new Error(
+        JSON.stringify(result)
+      );
     }
-  );
 
-  const result = JSON.parse(response.body);
+    return result.secure_url;
 
-  console.log("Cloudinary Result:", result);
+  } catch (error) {
 
-  if (!result.secure_url) {
-    throw new Error(result.error?.message || "Upload failed");
+    console.log(
+      "UPLOAD ERROR",
+      error
+    );
+
+    throw error;
   }
-
-  return result.secure_url;
 }

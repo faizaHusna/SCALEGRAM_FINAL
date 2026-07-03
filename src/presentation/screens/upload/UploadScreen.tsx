@@ -1,31 +1,34 @@
 import { useState } from "react";
 import {
+  Alert,
+  Image,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
-  Image,
-  TextInput,
-  Alert,
 } from "react-native";
 
 import { router } from "expo-router";
 
-import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 
-import Screen from "@/presentation/components/Screen";
 import Button from "@/presentation/components/Button";
+import Screen from "@/presentation/components/Screen";
 
 import { Colors } from "@/core/theme/colors";
 import { Fonts } from "@/core/theme/fonts";
 import { Shadows } from "@/core/theme/shadows";
 import { uploadPost } from "@/data/services/uploadService";
+import { useCreatePost } from "@/hooks/post/useCreatePost";
+
 
 export default function UploadScreen() {
   const [image, setImage] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-
+  const { createPost } = useCreatePost();
+  
   async function pickImage() {
     const permission =
       await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -107,7 +110,17 @@ export default function UploadScreen() {
     }
 
     try {
-      await uploadPost(image, caption);
+      const imageUrl = await uploadPost(image);
+
+      await createPost({
+      userId: "temp-user",
+      username: "Guest",
+      caption,
+      imageUrl: "https://picsum.photos/500/500",
+      likes: 0,
+      comments: 0,
+      createdAt: Date.now(),
+    });
 
       Alert.alert(
         "Success",

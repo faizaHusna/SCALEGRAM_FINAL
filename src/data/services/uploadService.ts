@@ -1,5 +1,7 @@
+import { PostRepository } from "../repositories/PostRepository";
 import { uploadImage } from "./cloudinaryService";
-import { addPost } from "../repositories/postRepository";
+
+const repository = new PostRepository();
 
 export async function uploadPost(
   image: string,
@@ -7,12 +9,14 @@ export async function uploadPost(
 ) {
   const imageUrl = await uploadImage(image);
 
-  addPost({
-    id: Date.now().toString(),
+  await repository.createPost({
+    userId: "temp-user",
     username: "Syifa",
-    image: imageUrl,
     caption,
+    imageUrl,
     likes: 0,
+    comments: 0,
+    createdAt: Date.now(),
   });
 
   return imageUrl;
