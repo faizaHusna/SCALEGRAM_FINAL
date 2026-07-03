@@ -1,7 +1,8 @@
 import {
+  User,
   createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   sendPasswordResetEmail,
+  signInWithEmailAndPassword,
   signOut,
   updateProfile,
 } from "firebase/auth";
@@ -11,19 +12,26 @@ import { auth } from "../firebase/firebaseConfig";
 export async function login(
   email: string,
   password: string
-) {
-  return await signInWithEmailAndPassword(
-    auth,
-    email,
-    password
-  );
+): Promise<User> {
+  const userCredential =
+    await signInWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+
+  return userCredential.user;
 }
+
+export const getCurrentUser = () => {
+  return auth.currentUser;
+};
 
 export async function register(
   username: string,
   email: string,
   password: string
-) {
+): Promise<User> {
   const userCredential =
     await createUserWithEmailAndPassword(
       auth,
@@ -35,18 +43,18 @@ export async function register(
     displayName: username,
   });
 
-  return userCredential;
+  return userCredential.user;
 }
 
 export async function resetPassword(
   email: string
-) {
-  return await sendPasswordResetEmail(
+): Promise<void> {
+  await sendPasswordResetEmail(
     auth,
     email
   );
 }
 
-export async function logout() {
-  return await signOut(auth);
+export async function logout(): Promise<void> {
+  await signOut(auth);
 }
