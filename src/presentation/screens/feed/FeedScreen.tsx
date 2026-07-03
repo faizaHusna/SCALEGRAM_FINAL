@@ -1,14 +1,13 @@
-import { FlatList, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useCallback, useState } from "react";
+import { FlatList, StyleSheet, Text, View } from "react-native";
 
+import PostCard from "@/presentation/components/PostCard";
 import Screen from "@/presentation/components/Screen";
 import StoryItem from "@/presentation/components/StoryItem";
-import PostCard from "@/presentation/components/PostCard";
 
 import { Colors } from "@/core/theme/colors";
 import { Fonts } from "@/core/theme/fonts";
-import { getPosts } from "@/data/repositories/postRepository";
+import { useGetFeed } from "@/hooks/post/useGetFeed";
 
 const stories = [
   { id: "1", username: "You" },
@@ -21,8 +20,7 @@ const stories = [
 
 
 export default function FeedScreen() {
-  const posts = getPosts();
-
+  const { posts } = useGetFeed();
   return (
     <Screen>
       {/* Header */}
@@ -60,22 +58,24 @@ export default function FeedScreen() {
       />
 
       {/* Posts */}
-      <View style={styles.posts}>
-  {posts.length === 0 ? (
+      <FlatList
+  data={posts}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => (
+    <PostCard
+      username={item.username}
+      caption={item.caption}
+      likes={item.likes}
+      imageUrl={item.imageUrl}
+    />
+  )}
+  ListEmptyComponent={
     <Text style={styles.empty}>
       No posts yet.
     </Text>
-  ) : (
-    posts.map((post) => (
-      <PostCard
-        key={post.id}
-        username={post.username}
-        caption={post.caption}
-        likes={post.likes}
-      />
-    ))
-  )}
-</View>
+  }
+  showsVerticalScrollIndicator={false}
+/>
     </Screen>
   );
 }

@@ -1,4 +1,5 @@
 import {
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -15,12 +16,14 @@ interface Props {
   username: string;
   caption: string;
   likes: number;
+  imageUrl: string;
 }
 
 export default function PostCard({
   username,
   caption,
   likes,
+  imageUrl,
 }: Props) {
   return (
     <View style={styles.card}>
@@ -39,7 +42,7 @@ export default function PostCard({
             </Text>
 
             <Text style={styles.time}>
-              2 min ago
+              Just now
             </Text>
           </View>
         </View>
@@ -53,18 +56,26 @@ export default function PostCard({
         </TouchableOpacity>
       </View>
 
-      {/* Image Placeholder */}
-      <View style={styles.image}>
-        <Ionicons
-          name="image-outline"
-          size={55}
-          color="#BDBDBD"
+      {/* Image */}
+      {imageUrl ? (
+        <Image
+          source={{ uri: imageUrl }}
+          style={styles.image}
+          resizeMode="cover"
         />
+      ) : (
+        <View style={styles.imagePlaceholder}>
+          <Ionicons
+            name="image-outline"
+            size={55}
+            color="#BDBDBD"
+          />
 
-        <Text style={styles.placeholder}>
-          No Image Yet
-        </Text>
-      </View>
+          <Text style={styles.placeholder}>
+            No Image
+          </Text>
+        </View>
+      )}
 
       {/* Actions */}
       <View style={styles.actions}>
@@ -81,6 +92,7 @@ export default function PostCard({
             name="chatbubble-outline"
             size={23}
             color="#222"
+            style={{ marginLeft: 15 }}
           />
         </TouchableOpacity>
 
@@ -89,6 +101,7 @@ export default function PostCard({
             name="paper-plane-outline"
             size={23}
             color="#222"
+            style={{ marginLeft: 15 }}
           />
         </TouchableOpacity>
 
@@ -123,7 +136,6 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     padding: 18,
     marginBottom: 24,
-
     ...Shadows.card,
   },
 
@@ -131,7 +143,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-
     marginBottom: 16,
   },
 
@@ -144,12 +155,9 @@ const styles = StyleSheet.create({
     width: 46,
     height: 46,
     borderRadius: 23,
-
     backgroundColor: "#EFE8FF",
-
     justifyContent: "center",
     alignItems: "center",
-
     marginRight: 12,
   },
 
@@ -173,21 +181,24 @@ const styles = StyleSheet.create({
   },
 
   image: {
+    width: "100%",
     height: 300,
-
     borderRadius: 22,
+    marginBottom: 18,
+  },
 
+  imagePlaceholder: {
+    width: "100%",
+    height: 300,
+    borderRadius: 22,
     backgroundColor: "#F4F5F7",
-
     justifyContent: "center",
     alignItems: "center",
-
     marginBottom: 18,
   },
 
   placeholder: {
     marginTop: 10,
-
     fontFamily: Fonts.medium,
     color: "#9A9A9A",
   },
@@ -195,16 +206,13 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: "row",
     alignItems: "center",
-
     marginBottom: 14,
   },
 
   likes: {
     fontFamily: Fonts.bold,
     fontSize: 15,
-
     color: Colors.light.text,
-
     marginBottom: 8,
   },
 
@@ -212,7 +220,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.regular,
     fontSize: 14,
     color: Colors.light.text,
-
     lineHeight: 22,
   },
 
