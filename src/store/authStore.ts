@@ -1,33 +1,21 @@
+import { User as DomainUser } from "@/domain/entities/User";
 import { create } from "zustand";
-import { User } from "firebase/auth";
 
 interface AuthState {
-  user: User | null;
-  loading: boolean;
-
-  setUser: (user: User | null) => void;
+  user: DomainUser | null;   // Menyimpan data profil user aktif dari Domain Layer
+  loading: boolean;          // Menandakan status pengecekan sesi login (Auth State Listener)
+  setUser: (user: DomainUser | null) => void;
   setLoading: (loading: boolean) => void;
-
   logout: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-
-  loading: false,
-
-  setUser: (user) =>
-    set({
-      user,
-    }),
-
-  setLoading: (loading) =>
-    set({
-      loading,
-    }),
-
-  logout: () =>
-    set({
-      user: null,
-    }),
+  // 1. Set default ke TRUE agar SplashScreen menahan layar sementara 
+  // sampai Firebase Auth selesai memeriksa apakah user sudah login atau belum.
+  loading: true, 
+  
+  setUser: (user) => set({ user, loading: false }), // Otomatis matikan loading saat user diset
+  setLoading: (loading) => set({ loading }),
+  logout: () => set({ user: null, loading: false }),
 }));

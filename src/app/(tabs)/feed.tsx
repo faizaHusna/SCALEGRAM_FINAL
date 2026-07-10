@@ -1,5 +1,7 @@
 import FeedScreen from "@/presentation/screens/feed/FeedScreen";
 
-export default function Feed() {
-  return <FeedScreen />;
+export default function Page()
+
+{ return <FeedScreen />; 
+
 }

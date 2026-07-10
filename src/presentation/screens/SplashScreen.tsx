@@ -1,7 +1,7 @@
-import { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
+import { useEffect } from "react";
+import { StyleSheet, Text, View } from "react-native";
 
 import { Fonts } from "@/core/theme/fonts";
 

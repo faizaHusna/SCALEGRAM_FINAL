@@ -1,15 +1,15 @@
 import React from "react";
 import {
-  TouchableOpacity,
-  Text,
-  StyleSheet,
   ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
 } from "react-native";
 
 import { LinearGradient } from "expo-linear-gradient";
 
-import { Gradients } from "@/core/theme/gradients";
 import { Fonts } from "@/core/theme/fonts";
+import { Gradients } from "@/core/theme/gradients";
 
 interface Props {
   title: string;
@@ -25,10 +25,13 @@ export default function Button({
   disabled = false,
 }: Props) {
   return (
-    <TouchableOpacity
-      activeOpacity={0.85}
+   
+    <Pressable
       onPress={onPress}
       disabled={loading || disabled}
+      style={({ pressed }) => [
+    { opacity: pressed ? 0.85 : 1 }
+  ]}
     >
       <LinearGradient
         colors={Gradients.button}
@@ -45,7 +48,7 @@ export default function Button({
           <Text style={styles.text}>{title}</Text>
         )}
       </LinearGradient>
-    </TouchableOpacity>
+    </Pressable>
   );
 }
 

@@ -1,11 +1,11 @@
 import React, { useState } from "react";
 import {
-  View,
-  TextInput,
-  StyleSheet,
-  TextInputProps,
-  TouchableOpacity,
-  Platform,
+    Platform,
+    Pressable,
+    StyleSheet,
+    TextInput,
+    TextInputProps,
+    View,
 } from "react-native";
 
 import { Ionicons } from "@expo/vector-icons";
@@ -50,7 +50,7 @@ export default function Input({
       />
 
       {isPassword && (
-        <TouchableOpacity
+        <Pressable
           onPress={() => setHidePassword(!hidePassword)}
         >
           <Ionicons
@@ -62,7 +62,7 @@ export default function Input({
             size={22}
             color="#9CA3AF"
           />
-        </TouchableOpacity>
+        </Pressable>
       )}
     </View>
   );

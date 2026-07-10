@@ -4,7 +4,7 @@ export interface IPostRepository {
 
   createPost(
     post: Omit<Post, "id">
-  ): Promise<any>;
+  ): Promise<void>;
 
   getPosts(): Promise<Post[]>;
 

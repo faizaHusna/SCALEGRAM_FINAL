@@ -1,9 +1,6 @@
-import { View, Text } from "react-native";
+import ProfileScreen from '../../presentation/screens/profile/ProfileScreen'; //  Benar (Tanpa kurung kurawal)
 
-export default function ProfileScreen() {
-  return (
-    <View>
-      <Text>Profile</Text>
-    </View>
-  );
+export default function Page() {
+	return <ProfileScreen />;
 }
+

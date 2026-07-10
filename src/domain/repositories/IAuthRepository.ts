@@ -1,22 +1,17 @@
-import { User } from "firebase/auth";
+// 1. HAPUS import dari firebase/auth di sini!
+import { User as DomainUser } from '@/domain/entities/User';
 
 export interface IAuthRepository {
-  login(
-    email: string,
-    password: string
-  ): Promise<User>;
+  // Semua fungsi mengembalikan tipe data dari Domain kita sendiri
+  login(email: string, password: string): Promise<DomainUser>;
 
-  register(
-    username: string,
-    email: string,
-    password: string
-): Promise<User>;
+register(nickname: string, username: string, email: string, password: string): Promise<DomainUser>;
 
   logout(): Promise<void>;
 
-  resetPassword(
-    email: string
-  ): Promise<void>;
+  resetPassword(email: string): Promise<void>;
 
-  getCurrentUser(): User | null;
+  // Catatan: Karena mengambil status user dari Firebase bersifat asynchronous, 
+  // sebaiknya kembalikan Promise<DomainUser | null>
+  getCurrentUser(): Promise<DomainUser | null>; 
 }

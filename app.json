@@ -25,6 +25,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Izinkan ScaleGram mengakses kamera Anda untuk membuat Story."
+        }
+      ],
+      
       "expo-router",
       [
         "expo-splash-screen",
@@ -40,5 +48,6 @@
     "experiments": {
       "typedRoutes": true
     }
+    
   }
 }

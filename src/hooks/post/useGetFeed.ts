@@ -1,32 +1,46 @@
-import { PostRepository } from "@/data/repositories/PostRepository";
-import { Post } from "@/domain/entities/Post";
+import { useInjection } from "@/core/di/InjectionContext";
 import { GetFeedUseCase } from "@/domain/usecases/getFeedUseCase";
-import { useEffect, useState } from "react";
+import { useFeedStore } from "@/store/feedStore";
+import { useCallback, useState } from "react";
+// 💡 1. GANTI IMPOR useEffect DENGAN useFocusEffect DARI EXPO
+import { useFocusEffect } from "expo-router";
 
 export function useGetFeed() {
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<any>(null);
+  
+  const { posts, setPosts } = useFeedStore();
+  const { postRepository } = useInjection();
+  
+  const useCase = new GetFeedUseCase(postRepository);
 
-  const [posts, setPosts] = useState<Post[]>([]);
-
-  const repository =
-    new PostRepository();
-
-  const useCase =
-    new GetFeedUseCase(repository);
-
-  useEffect(() => {
-    async function load() {
-
-      const data =
-        await useCase.execute();
-
+  const loadFeed = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const data = await useCase.execute();
+      
       setPosts(data);
+    } catch (err) {
+      console.error("Gagal memuat data feed di level useGetFeed:", err);
+      setError(err);
+    } finally {
+      setIsLoading(false);
     }
-    load();
-  }, []);
+  }, [setPosts]);
+
+  // 💡 2. GANTI useEffect MENJADI useFocusEffect
+  // Ini akan dipanggil setiap kali layar mendapatkan fokus (misal: kembali dari halaman upload)
+  useFocusEffect(
+    useCallback(() => {
+      loadFeed();
+    }, [loadFeed])
+  );
 
   return {
-    posts,
-
+    posts,        
+    isLoading,    
+    error,        
+    refreshFeed: loadFeed, 
   };
-
 }

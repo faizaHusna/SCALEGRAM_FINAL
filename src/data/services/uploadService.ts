@@ -1,5 +1,5 @@
 import { PostRepository } from "../repositories/PostRepository";
-import { uploadImage } from "./cloudinaryService";
+import { uploadImage } from "./CloudinaryService";
 
 const repository = new PostRepository();
 
@@ -14,7 +14,7 @@ export async function uploadPost(
     username: "Syifa",
     caption,
     imageUrl,
-    likes: 0,
+    likes: [],
     comments: 0,
     createdAt: Date.now(),
   });

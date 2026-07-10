@@ -1,6 +1,8 @@
 import { getApp, getApps, initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+// 💡 Hanya impor initializeAuth saja dari entrypoint utama
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FirebaseAuth from "firebase/auth"; // Impor seluruh modul sebagai objek
+import { initializeAuth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAOcm82xMGhKm-CyLBUfepfXa-24tgS0ek",
@@ -11,14 +13,22 @@ const firebaseConfig = {
   appId: "1:64994097285:web:2f7b76666e1f0c877511ec",
 };
 
-const app = getApps().length
-  ? getApp()
-  : initializeApp(firebaseConfig);
+// 1. Inisialisasi Firebase App
+const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-export const db = getFirestore(app);
+// 2. Ambil fungsi persistensi secara dinamis untuk mengelabui strict-type compiler
+const getReactNativePersistence = (FirebaseAuth as any)._getReactNativePersistence || (FirebaseAuth as any).getReactNativePersistence;
 
-console.log("app =", app);
-console.log("db =", db);
+let firebaseAuth;
 
+if (getApps().length > 0) {
+  firebaseAuth = initializeAuth(app, {});
+} else {
+  firebaseAuth = initializeAuth(app, {
+    // 💡 Jalankan fungsi persistensi yang berhasil diekstrak
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+}
+
+export const auth = firebaseAuth;
 export default app;

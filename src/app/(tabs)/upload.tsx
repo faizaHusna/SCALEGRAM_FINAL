@@ -1,5 +1,5 @@
 import UploadScreen from "@/presentation/screens/upload/UploadScreen";
 
-export default function Upload() {
+export default function Page() {
   return <UploadScreen />;
 }

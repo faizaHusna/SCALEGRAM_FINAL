@@ -1,11 +1,11 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import {
-  Alert,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Alert,
+    Pressable,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 import AuthCard from "@/presentation/components/AuthCard";
@@ -19,7 +19,7 @@ import { Fonts } from "@/core/theme/fonts";
 import { Spacing } from "@/core/theme/spacing";
 import { Typography } from "@/core/theme/typography";
 
-import { resetPassword } from "@/data/services/authService";
+import { resetPassword } from "@/data/services/AuthService";
 import { useAuthStore } from "@/store/authStore";
 
 export default function ForgotPasswordScreen() {
@@ -86,13 +86,13 @@ export default function ForgotPasswordScreen() {
             Remember your password?
           </Text>
 
-          <TouchableOpacity
+          <Pressable
             onPress={() => router.push("/login")}
           >
             <Text style={styles.register}>
               Login
             </Text>
-          </TouchableOpacity>
+          </Pressable>
         </View>
       </AuthCard>
     </Screen>
