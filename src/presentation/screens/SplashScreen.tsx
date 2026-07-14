@@ -9,7 +9,7 @@ export default function SplashScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace("/(auth)/login");
-    }, 2500);
+    }, 5000);
 
     return () => clearTimeout(timer);
   }, []);

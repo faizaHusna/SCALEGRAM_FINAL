@@ -7,4 +7,6 @@ export interface Post {
   likes: string[];    // 💡 Diubah jadi array string berisi ID User yang nge-like (Sangat krusial untuk logika UI tombol hati)
   comments: number;   // Jumlah total komentar
   createdAt: number;  // Timestamp format milidetik / detik
+  mediaType?: 'image' | 'video'; // 💡 Tambahan opsional untuk membedakan tipe media
+  savedBy?: string[]; // 👈 TAMBAHKAN BARIS INI (opsional agar tidak merah)
 }

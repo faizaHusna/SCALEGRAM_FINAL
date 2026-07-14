@@ -8,9 +8,10 @@
     "scheme": "scalegram",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon"
+      "icon": "./assets/images/icon.png"
     },
     "android": {
+      "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -18,21 +19,25 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.ScaleGram"
+      "package": "com.anonymous.ScaleGram",
+      "permissions": [
+        "CAMERA",
+        "RECORD_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
     },
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-
       [
         "expo-image-picker",
         {
           "cameraPermission": "Izinkan ScaleGram mengakses kamera Anda untuk membuat Story."
         }
       ],
-      
       "expo-router",
       [
         "expo-splash-screen",
@@ -43,11 +48,22 @@
         }
       ],
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-video",
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Izinkan ScaleGram mengakses foto di galeri Anda.",
+          "savePhotosPermission": "Izinkan ScaleGram menyimpan foto ke galeri Anda.",
+          "videosPermission": "Izinkan ScaleGram mengakses video di galeri Anda.",
+          "saveVideosPermission": "Izinkan ScaleGram menyimpan video ke galeri Anda.",
+          "audioPermission": "Izinkan ScaleGram mengakses audio untuk kebutuhan media.",
+          "saveAudioPermission": "Izinkan ScaleGram menyimpan file audio Anda."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
     }
-    
   }
 }

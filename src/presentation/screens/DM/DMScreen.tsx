@@ -1,12 +1,13 @@
 import { Colors } from "@/core/theme/colors";
-import { Fonts } from "@/core/theme/fonts";
 import Screen from "@/presentation/components/Screen";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react"; // Tambahkan useMemo di sini
+import { FlatList, Image, Pressable, Text, TextInput, View } from "react-native";
 
-// 1. Blueprint Model Data Chat / DM List
+// IMPORT STYLES
+import { styles } from "@/domain/style/DMStyles";
+
 interface ChatItem {
   id: string;
   username: string;
@@ -17,7 +18,6 @@ interface ChatItem {
   unreadCount: number;
 }
 
-// 2. Data Dummy Obrolan Masuk
 const dummyChats: ChatItem[] = [
   {
     id: "ch-1",
@@ -52,26 +52,41 @@ export default function DMScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Logika pencarian/penyaringan chat
+  const filteredChats = useMemo(() => {
+    if (!searchQuery) return dummyChats;
+    const query = searchQuery.toLowerCase();
+    
+    return dummyChats.filter(
+      (chat) =>
+        chat.nickname.toLowerCase().includes(query) ||
+        chat.username.toLowerCase().includes(query) ||
+        chat.lastMessage.toLowerCase().includes(query)
+    );
+  }, [searchQuery]);
+
   const renderItem = useCallback(({ item }: { item: ChatItem }) => (
-    <Pressable 
+    <Pressable
       style={styles.chatCard}
-      onPress={() => alert(`Membuka ruang obrolan dengan: @${item.username}`)}
+      onPress={() =>
+        router.push({
+          pathname: "/chat/room" as any,
+          params: { nickname: item.nickname, avatarUrl: item.avatarUrl },
+        })
+      }
     >
-      {/* Kiri: Foto Profil Teman */}
       <Image source={{ uri: item.avatarUrl }} style={styles.avatar} />
 
-      {/* Tengah: Nama Akun & Cuplikan Teks Pesan */}
       <View style={styles.messageContent}>
         <Text style={styles.nicknameText}>{item.nickname}</Text>
-        <Text 
-          style={[styles.lastMessageText, item.unreadCount > 0 && styles.unreadMessageText]} 
+        <Text
+          style={[styles.lastMessageText, item.unreadCount > 0 && styles.unreadMessageText]}
           numberOfLines={1}
         >
           {item.lastMessage}
         </Text>
       </View>
 
-      {/* Kanan: Info Waktu & Jumlah Pesan Belum Dibaca */}
       <View style={styles.rightInfo}>
         <Text style={[styles.timeText, item.unreadCount > 0 && styles.unreadTimeText]}>{item.time}</Text>
         {item.unreadCount > 0 && (
@@ -81,22 +96,21 @@ export default function DMScreen() {
         )}
       </View>
     </Pressable>
-  ), []);
+  ), [router]);
 
   return (
     <Screen scrollable={false}>
-      {/* 1. Header Navigation DM */}
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={Colors.light.text} />
         </Pressable>
         <Text style={styles.headerTitle}>Direct Messages</Text>
-        <Pressable onPress={() => alert("Mulai chat baru")} style={styles.composeButton}>
+        <Pressable
+          onPress={() => router.push("/chat/new-chat" as any)} style={styles.composeButton}>          
           <Ionicons name="create-outline" size={24} color={Colors.light.text} />
         </Pressable>
       </View>
 
-      {/* 2. Kotak Search Bar Pesan */}
       <View style={styles.searchSection}>
         <View style={styles.searchBar}>
           <Ionicons name="search-outline" size={18} color="#8A8A8A" style={styles.searchIcon} />
@@ -110,9 +124,8 @@ export default function DMScreen() {
         </View>
       </View>
 
-      {/* 3. List Kontak Chat */}
       <FlatList
-        data={dummyChats}
+        data={filteredChats} // Gunakan filteredChats di sini, bukan dummyChats lagi
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         showsVerticalScrollIndicator={false}
@@ -120,132 +133,10 @@ export default function DMScreen() {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="chatbubbles-outline" size={48} color="#ccc" />
-            <Text style={styles.emptyText}>Belum ada obrolan dimulai.</Text>
+            <Text style={styles.emptyText}>Tidak ada pesan yang cocok.</Text>
           </View>
         }
       />
     </Screen>
   );
 }
-
-// 4. Struktur Stylesheet Pintar (Otomatis Mendeteksi Tipe)
-const styles = StyleSheet.create({
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#f0f0f0",
-    backgroundColor: "#fff",
-  },
-  backButton: {
-    padding: 2,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontFamily: Fonts.bold,
-    color: Colors.light.text,
-  },
-  composeButton: {
-    padding: 2,
-  },
-  searchSection: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: "#fff",
-  },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 38,
-  },
-  searchIcon: {
-    marginRight: 6,
-  },
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.light.text,
-  },
-  listContent: {
-    paddingVertical: 4,
-  },
-  chatCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: "#fff",
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#eee",
-  },
-  messageContent: {
-    flex: 1,
-    paddingLeft: 14,
-    paddingRight: 8,
-  },
-  nicknameText: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: Colors.light.text,
-    marginBottom: 3,
-  },
-  lastMessageText: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: "#8e8e93",
-  },
-  unreadMessageText: {
-    fontFamily: Fonts.bold,
-    color: "#000",
-  },
-  rightInfo: {
-    alignItems: "flex-end",
-    justifyContent: "center",
-  },
-  timeText: {
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-    color: "#8e8e93",
-    marginBottom: 6,
-  },
-  unreadTimeText: {
-    fontFamily: Fonts.bold,
-    color: "#5F4BB6",
-  },
-  badgeContainer: {
-    backgroundColor: "#5F4BB6",
-    minWidth: 18,
-    height: 18,
-    borderRadius: 9,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 4,
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 10,
-    fontFamily: Fonts.bold,
-  },
-  emptyContainer: {
-    marginTop: 120,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    marginTop: 12,
-    fontFamily: Fonts.medium,
-    color: "#8e8e93",
-  },
-});

@@ -2,21 +2,22 @@ const CLOUD_NAME = "de9bhugsj";
 const UPLOAD_PRESET = "e87zapml";
 
 export async function uploadImage(
-  imageUri: string
+  imageUri: string,
+  resourceType: 'image' | 'video' = 'image'
 ): Promise<string> {
   try {
     const formData = new FormData();
 
     const filename =
-      imageUri.split("/").pop() || "photo.jpg";
+      imageUri.split("/").pop() || (resourceType === 'video' ? "video.mp4" : "photo.jpg");
 
     const ext =
-      filename.split(".").pop() || "jpg";
+      filename.split(".").pop() || (resourceType === 'video' ? "mp4" : "jpg");
 
     formData.append("file", {
       uri: imageUri,
       name: filename,
-      type: `image/${ext}`,
+      type: `${resourceType}/${ext}`,
     } as any);
 
     formData.append(
@@ -24,11 +25,11 @@ export async function uploadImage(
       UPLOAD_PRESET
     );
 
-    console.log("Uploading image...");
+    console.log(`Uploading ${resourceType}...`);
     console.log(imageUri);
 
     const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+      `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/${resourceType}/upload`,
       {
         method: "POST",
         body: formData,

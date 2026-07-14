@@ -6,4 +6,5 @@ export interface Story {
   avatarUrl?: string;
   mediaUrl: string;
   createdAt: Date;
+  textOverlay?: string;
 }

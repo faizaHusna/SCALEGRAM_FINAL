@@ -1,11 +1,4 @@
-// FILE: src/app/_layout.tsx (FIXED - TERINTEGRASI DENGAN BOTTOM SHEET MODAL GLOBAL)
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet'; // 🚀 TAMBAHKAN INI
-import { Stack, router } from "expo-router";
-import * as ExpoSplashScreen from "expo-splash-screen";
-import React, { useEffect } from "react";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { PaperProvider } from 'react-native-paper';
-
+import { ActivityProvider } from '@/context/ActivityContext';
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
@@ -14,15 +7,21 @@ import {
   useFonts
 } from "@expo-google-fonts/plus-jakarta-sans";
 import { Sora_700Bold } from "@expo-google-fonts/sora";
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
+import { Stack, router } from "expo-router";
+import * as ExpoSplashScreen from "expo-splash-screen";
+import React, { useEffect } from "react";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { PaperProvider } from 'react-native-paper';
 
 import { InjectionProvider } from "@/core/di/InjectionContext";
 import { DIContainer } from "@/core/di/container";
-import { useAuthStore } from "@/store/authStore";
-
+import { AuthState, useAuthStore } from '@/store/authStore'; // Pastikan path benar
 ExpoSplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const { user } = useAuthStore();
+const user = useAuthStore((state: AuthState) => state.user);
+
 
   const [fontsLoaded] = useFonts({
     "PlusJakartaSans-Regular": PlusJakartaSans_400Regular,
@@ -52,26 +51,18 @@ export default function RootLayout() {
     <InjectionProvider container={DIContainer}>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <PaperProvider>
-          {/* 🚀 BUNGKUS DENGAN BOTTOMSHEETMODALPROVIDER DI SINI! 
-              Ini memastikan BottomSheetModal dapat dibuka dari mana saja,
-              termasuk rute di luar tabs seperti post/[id].tsx */}
           <BottomSheetModalProvider>
+            {/* Navigasi sekarang hanya fokus pada rute yang benar-benar ada */}
+            <ActivityProvider>
             <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="index" />
               <Stack.Screen name="(auth)/login" />
               <Stack.Screen name="(auth)/register" />
               <Stack.Screen name="(auth)/forgot-password" />
               <Stack.Screen name="(tabs)" />
-             
-              {/* stack screen post/[id] dengan animasi terkontrol */}
-              <Stack.Screen
-                name="post/[id]"
-                options={{
-                  animation: 'slide_from_right', // Sekarang bisa menggunakan animasi default yang halus
-                  gestureEnabled: true,
-                }}
-              />
+              {/* Rute post/[id] dihapus karena sudah di-handle inline di Search & Feed */}
             </Stack>
+            </ActivityProvider>
           </BottomSheetModalProvider>
         </PaperProvider>
       </GestureHandlerRootView>

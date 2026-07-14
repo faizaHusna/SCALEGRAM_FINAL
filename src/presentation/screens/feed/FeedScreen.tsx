@@ -1,136 +1,165 @@
-import { Ionicons } from "@expo/vector-icons";
-import BottomSheet from "@gorhom/bottom-sheet";
-import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from "expo-router";
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-
+import { useAutoRefresh } from '@/context/ActivityContext'; // 💡 1. Impor hook jalan pintas
 import { Colors } from "@/core/theme/colors";
-import { Fonts } from "@/core/theme/fonts";
 import { Post } from "@/domain/entities/Post";
 import { useGetFeed } from "@/hooks/post/useGetFeed";
 import { CommentBottomSheet } from "@/presentation/components/CommentBottomSheet";
+import { CreateStoryButton } from "@/presentation/components/CreateStoryButton";
 import PostCard from "@/presentation/components/PostCard";
 import { ShareToDMBottomSheet } from "@/presentation/components/ShareToDMBottomSheet";
 import StoryItem from "@/presentation/components/StoryItem";
 import { useAuthStore } from "@/store/authStore";
+import { usePostStore } from '@/store/postStore';
+import { useStoryStore } from '@/store/useStoryStore';
+import { Ionicons } from "@expo/vector-icons";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { Alert, FlatList, Pressable, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const stories = [
-  { id: "1", username: "Syifa" },
-  { id: "2", username: "Hani" },
-  { id: "3", username: "Faiza" },
-];
+// IMPORT STYLES
+import { styles } from "@/domain/style/FeedStyles";
 
 const FeedContext = createContext<any>(null);
-
-const CreateStoryButton = () => {
-  const router = useRouter();
-
-  // Fungsi untuk membuka galeri
-  const pickImage = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Izin akses galeri diperlukan!");
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [9, 16],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      router.push({ pathname: '/story/editor', params: { imageUri: result.assets[0].uri } });
-    }
-  };
-
-  // Fungsi untuk membuka kamera
-  const takePhoto = async () => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      alert("Izin kamera diperlukan!");
-      return;
-    }
-    const result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [9, 16],
-      quality: 1,
-    });
-    if (!result.canceled) {
-      router.push({ pathname: '/story/editor', params: { imageUri: result.assets[0].uri } });
-    }
-  };
-
-  // Fungsi Alert untuk memilih sumber
-  const handlePress = () => {
-    Alert.alert(
-      "Tambah Story",
-      "Pilih sumber gambar:",
-      [
-        { text: "Kamera", onPress: takePhoto },
-        { text: "Galeri", onPress: pickImage },
-        { text: "Batal", style: "cancel" }
-      ]
-    );
-  };
-
-  return (
-    <Pressable onPress={handlePress} style={styles.storyContainer}>
-      <View style={styles.createStoryRing}>
-        <Ionicons name="add" size={24} color={Colors.light.primary} />
-      </View>
-      <Text style={[styles.username, { fontFamily: Fonts.medium }]}>You</Text> 
-    </Pressable>
-  );
-};
-
 function FeedContent({ onOpenComment, onOpenShare }: { onOpenComment: (id: string) => void, onOpenShare: (id: string) => void }) {
   const router = useRouter();
   const { posts, error } = useContext(FeedContext);
   const user = useAuthStore((state) => state.user);
 
+  // STATE UNTUK MENYIMPAN ID STORY YANG SUDAH DITEKAN
+  const [viewedStories, setViewedStories] = useState<string[]>([]);
+  const [activePostId, setActivePostId] = useState<string | null>(null);
+
+  // ✅ 1. AMBIL DATA STYLES DARI ZUSTAND STORE
+  const rawStories = useStoryStore((state) => state.storiesData);
+
+  // ✅ 2. GABUNGKAN DENGAN USER PROFILE ANDA DI POSITION PALING DEPAN
+const storiesData = useMemo(() => {
+  // Saring rawStories, buang item yang punya ID "create_placeholder" atau "0" agar tidak duplikat
+  const filteredRaw = rawStories.filter(
+    (story: any) => story.id !== "create_placeholder" && story.id !== "0"
+  );
+  
+  // Baru gabungkan dengan tombol "You" di paling depan
+  return [{ id: "create_placeholder", username: "You", avatarUrl: user?.avatarUrl }, ...filteredRaw];
+}, [user?.avatarUrl, rawStories]);
+
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 60, // Postingan harus terlihat minimal 60% baru videonya berputar
+  }).current;
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: any[] }) => {
+    if (viewableItems.length > 0) {
+      const focusedItem = viewableItems[0];
+      setActivePostId(focusedItem.key || focusedItem.item.id);
+    }
+  }).current;
+
+  // Fungsi saat Story Teman ditekan
+  const handleStoryPress = (id: string, username: string) => {
+    if (id === "create_placeholder") return; // Abaikan jika yang ditekan tombol 'You'
+    if (!viewedStories.includes(id)) {
+      setViewedStories([...viewedStories, id]);
+    }
+    Alert.alert("Membuka Story", `Melihat story dari ${username}`);
+  };
+
+  // ✅ 3. FUNGSI RENDER POST SEKARANG SUDAH MASUK KEMBALI KE DALAM FUNGSI UTAMA
   const renderPostItem = useCallback(({ item }: { item: Post }) => (
     <PostCard
       post={item}
       currentUserId={user?.id}
+      isActive={item.id === activePostId} 
       onLikeToggle={(id) => console.log(`Post liked: ${id}`)}
       onCommentPress={() => onOpenComment(item.id)}
       onSharePress={() => onOpenShare(item.id)}
+      onEditPress={(postId) => {
+        // Arahkan ke layar edit postingan bawa parameter postId
+        router.push({
+          pathname: "/edit-post"as any , // 👈 Sesuaikan dengan nama file/rute screen edit Anda
+          params: { postId: postId }
+        });
+      }}
+      onReportPress={async (postId) => {
+        try {
+          const response = await fetch(`https://api.scalegram.com/posts/${postId}/report`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              reportedBy: user?.id, 
+              reason: "Pelanggaran Panduan Komunitas",
+              createdAt: new Date().toISOString()
+            })
+          });
+          if (!response.ok) {
+            throw new Error('Gagal mengirimkan laporan ke server');
+          }
+          console.log(`Post ${postId} berhasil dilaporkan ke backend.`);
+        } catch (error) {
+          console.error("Error Report API:", error);
+          throw error;
+        }
+      }}
+
+      
     />
-  ), [user?.id, onOpenComment, onOpenShare]);
+  ), [user?.id, onOpenComment, onOpenShare, activePostId]);
 
-  const storiesData = [{ id: "0", username: "You" }, ...stories];
+  const getGreeting = () => {
+    const hours = new Date().getHours();
+    if (hours >= 5 && hours < 12) return "Good Morning";
+    if (hours >= 12 && hours < 17) return "Good Afternoon";
+    if (hours >= 17 && hours < 21) return "Good Evening";
+    return "Good Night";
+  };
 
-  const listHeaderComponent = useMemo(() => (
-    <View>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Good Morning,</Text>
-          <Text style={styles.logo}>ScaleGram</Text>
+  // ✅ 4. HEADER & STORIES FLATLIST DI DALAM USEMEMO
+  const listHeaderComponent = useMemo(() => {
+    const greetingText = getGreeting();
+
+    return (
+      <View>
+        {/* --- BAGIAN 1: HEADER --- */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{greetingText},</Text>
+            <Text style={styles.logo}>ScaleGram</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <Pressable onPress={() => router.push("/notification")}>
+              <Ionicons name="notifications-outline" size={26} color={Colors.light.text} />
+            </Pressable>
+            <Pressable onPress={() => router.push("/dm")}>
+              <Ionicons name="paper-plane-outline" size={26} color={Colors.light.text} />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.headerRight}>
-          <Pressable onPress={() => router.push("/notification")}>
-            <Ionicons name="notifications-outline" size={24} color={Colors.light.text} />
-          </Pressable>
-          <Pressable onPress={() => router.push("/dm")}>
-            <Ionicons name="paper-plane-outline" size={24} color={Colors.light.text} />
-          </Pressable>
-        </View>
+
+        {/* --- BAGIAN 2: STORIES FLATLIST --- */}
+        <FlatList
+          horizontal
+          data={storiesData}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item, index }) => {
+            if (index === 0) return <CreateStoryButton />;
+
+            return (
+              <StoryItem
+                username={item.username}
+                avatarUrl={item.avatarUrl}
+                isSeen={viewedStories.includes(item.id)}
+                onPress={() => handleStoryPress(item.id, item.username)}
+              />
+            );
+          }}
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.storyList}
+        />
       </View>
-      <FlatList
-        horizontal
-        data={storiesData}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => {
-          if (index === 0) return <CreateStoryButton />;
-          return <StoryItem username={item.username} />;
-        }}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.storyList}
-      />
-    </View>
-  ), []);
+    );
+  }, [router, viewedStories, storiesData]);
 
   if (error) {
     return (
@@ -141,6 +170,7 @@ function FeedContent({ onOpenComment, onOpenShare }: { onOpenComment: (id: strin
     );
   }
 
+  // ✅ 5. RETURN UTAMA UNTUK SELURUH HALAMAN FEED POST
   return (
     <FlatList
       data={posts}
@@ -151,41 +181,40 @@ function FeedContent({ onOpenComment, onOpenShare }: { onOpenComment: (id: strin
       showsVerticalScrollIndicator={false}
       style={{ flex: 1 }}
       contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 120 }}
+      viewabilityConfig={viewabilityConfig}
+      onViewableItemsChanged={onViewableItemsChanged}
+
+     
     />
   );
-}
+} // 👈 DI SINI TANDA TUTUP YANG BENAR UNTUK FeedContent!
 
 export default function FeedScreen() {
+  const refreshProps = useAutoRefresh(); // 💡 2. Panggil hook-nya
   const feedUseCase = useGetFeed();
-  const bottomSheetRef = useRef<BottomSheet>(null);
-  const shareSheetRef = useRef<BottomSheet>(null);
+  const bottomSheetRef = useRef<BottomSheetModal>(null);
+  const shareSheetRef = useRef<BottomSheetModal>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  
+
+  const { fetchAllPosts } = usePostStore();
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAllPosts(); // Mengambil data paling segar dari database
+    }, [])
+  );
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-        <FeedContext.Provider value={feedUseCase}>
-          <FeedContent
-            onOpenComment={(id) => { setSelectedPostId(id); bottomSheetRef.current?.snapToIndex(0); }}
-            onOpenShare={(id) => { setSelectedPostId(id); shareSheetRef.current?.snapToIndex(0); }}
-          />
-        </FeedContext.Provider>
-        <CommentBottomSheet ref={bottomSheetRef} postId={selectedPostId} />
-        <ShareToDMBottomSheet ref={shareSheetRef} postId={selectedPostId} />
+      <FeedContext.Provider value={feedUseCase}>
+        <FeedContent
+          onOpenComment={(id) => { setSelectedPostId(id); bottomSheetRef.current?.present(); }}
+          onOpenShare={(id) => { setSelectedPostId(id); shareSheetRef.current?.present(); }}
+          {...refreshProps}
+        />
+      </FeedContext.Provider>
+      <CommentBottomSheet ref={bottomSheetRef} postId={selectedPostId} />
+      <ShareToDMBottomSheet ref={shareSheetRef} postId={selectedPostId} />
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  header: { marginTop: 20, marginBottom: 24, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  greeting: { fontSize: 15, color: "#8A8A8A", fontFamily: Fonts.regular, marginBottom: 4 },
-  logo: { fontSize: 32, fontFamily: Fonts.logo, color: Colors.light.text },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 18 },
-  storyList: { paddingBottom: 24, paddingRight: 12 },
-  storyContainer: { alignItems: "center", marginRight: 18, width: 74 },
-  createStoryRing: { width: 72, height: 72, borderRadius: 36, borderWidth: 2, borderColor: '#E5E5E5', justifyContent: "center", alignItems: "center" },
-  username: { marginTop: 8, fontSize: 13, color: Colors.light.text },
-  empty: { marginTop: 40, textAlign: "center", color: "#999" },
-  errorContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
-  errorText: { marginTop: 12, textAlign: "center", color: "#666" },
-});

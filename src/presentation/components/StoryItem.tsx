@@ -1,26 +1,25 @@
 import { Colors } from "@/core/theme/colors";
 import { Fonts } from "@/core/theme/fonts";
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 interface Props {
   username: string;
   avatarUrl?: string; // Tambahkan URL gambar
   isSeen?: boolean;   // Status apakah story sudah dilihat
+  onPress?: () => void; // 2. Tambahkan properti fungsi klik di sini
 }
 
-export default function StoryItem({ username, avatarUrl, isSeen }: Props) {
+export default function StoryItem({ username, avatarUrl, isSeen, onPress }: Props) {
   // Jika sudah dilihat, ring berwarna abu-abu. Jika belum, gradient.
 const ringColors = isSeen 
   ? (["#E5E5E5", "#E5E5E5"] as const) 
   : (["#8B5CF6", "#6D5DF6", "#A855F7"] as const);
 
   return (
-    <View style={styles.container}>
-      <LinearGradient
-        colors={ringColors}
-        style={styles.storyRing}
-      >
+    // 3. Ubah View paling luar menjadi Pressable dan sambungkan ke fungsi onPress
+    <Pressable onPress={onPress} style={styles.container}>
+      <LinearGradient colors={ringColors} style={styles.storyRing}>
         <View style={styles.avatarContainer}>
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} style={styles.avatarImage} />
@@ -31,7 +30,7 @@ const ringColors = isSeen
       </LinearGradient>
 
       <Text numberOfLines={1} style={styles.username}>{username}</Text>
-    </View>
+    </Pressable>
   );
 }
 

@@ -1,184 +1,143 @@
+import { Ionicons } from "@expo/vector-icons";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import { useRouter } from "expo-router"; // 👈 1. IMPORT ROUTER
+import React, { useRef } from "react";
+import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
+
 import { Colors } from "@/core/theme/colors";
-import { Fonts } from "@/core/theme/fonts";
+import { ActivityItem } from "@/domain/entities/Activity";
+import { CommentBottomSheet } from "@/presentation/components/CommentBottomSheet";
 import Screen from "@/presentation/components/Screen";
-import React, { useCallback } from "react";
-import { FlatList, Image, Pressable, StyleSheet, Text, View } from "react-native";
+import { ShareToDMBottomSheet } from "@/presentation/components/ShareToDMBottomSheet";
 
-// 1. Struktur Data Multi-Aktivitas Sosial
-interface ActivityItem {
-  id: string;
-  type: "like" | "comment" | "mention" | "follow";
-  username: string;
-  userAvatar: string; 
-  time: string;
-  postImage?: string; // Foto milik kita (untuk tipe like, comment, mention)
-}
+import { styles } from "@/domain/style/ActivityStyles";
+import { useActivityLogic } from "@/hooks/Activity/useActivityLogic";
 
-// 2. Data Dummy yang Diperluas Sesuai Skema Baru
-const dummyActivityData: ActivityItem[] = [
-  {
-    id: "1",
-    type: "like",
-    username: "syifaaa._",
-    userAvatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150",
-    time: "2m",
-    postImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150",
-  },
-  {
-    id: "2",
-    type: "comment",
-    username: "kevin.san",
-    userAvatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150",
-    time: "15m",
-    postImage: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=150",
-  },
-  {
-    id: "3",
-    type: "follow",
-    username: "hanifah_iz",
-    userAvatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150",
-    time: "2h",
-  },
-  {
-    id: "4",
-    type: "mention",
-    username: "faiza_luna",
-    userAvatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150",
-    time: "1d",
-    postImage: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=150",
-  },
-];
+import { ActivityListItem } from "@/presentation/components/ActivityListItem";
 
 export default function ActivityScreen() {
-  
-  // Fungsi pembantu untuk membedakan string aksi teks di UI
-  const renderActivityText = (type: ActivityItem["type"]) => {
-    switch (type) {
-      case "like":
-        return " menyukai foto Anda. ";
+  const router = useRouter(); // 👈 2. INISIALISASI ROUTER
+  // ERROR SEBELUMNYA KARENA KATA 'const' DI BAWAH INI HILANG ATAU TERHAPUS
+  const {
+    activeTab,
+    setActiveTab,
+    refreshing,
+    followedUsers,
+    interactionPostId,
+    handleRefresh,
+    markAllAsRead,
+    clearAllActivities,
+    toggleFollow,
+    handleItemPress,
+    filteredActivities
+  } = useActivityLogic();
+
+  const commentSheetRef = useRef<BottomSheetModal>(null);
+  const shareSheetRef = useRef<BottomSheetModal>(null);
+
+  const onRowPress = (item: ActivityItem) => {
+    // Jalankan logic internal hook dulu (misal: mengubah status isUnread menjadi false, atau set interactionPostId)
+    handleItemPress(item);
+
+    // Cek tipenya untuk menentukan respon UI
+    switch (item.type) {
       case "comment":
-        return " mengomentari postingan Anda. ";
-      case "mention":
-        return " menyebut Anda dalam sebuah komentar. ";
+        // 💬 Tipe Komentar: Buka Bottom Sheet komentar langsung di tempat! (UX Keren ala IG asli)
+        commentSheetRef.current?.present();
+        break;
+
       case "follow":
-        return " mulai mengikuti Anda. ";
+        // 👤 Tipe Follow: Terbang langsung ke halaman profil orang tersebut
+        router.push(`/profile/${item.username}`);
+        break;
+
+      case "like":
+      case "mention":
+        // ❤️ / 🏷️ Tipe Like & Mention: Buka halaman detail postingan yang bersangkutan
+        if (item.postId) {
+          router.push(`/post/${item.postId}`);
+        }
+        break;
+
       default:
-        return " berinteraksi dengan Anda. ";
+        console.log("Tipe aktivitas tidak dikenali");
     }
   };
 
-  const renderItem = useCallback(({ item }: { item: ActivityItem }) => (
-    <View style={styles.activityCard}>
-      {/* Kiri: Avatar orang yang memicu interaksi */}
-      <Image source={{ uri: item.userAvatar }} style={styles.avatar} />
-
-      {/* Tengah: Gabungan Teks Nama + Jenis Aksi + Waktu */}
-      <View style={styles.textContainer}>
-        <Text style={styles.activityText}>
-          <Text style={styles.username}>{item.username}</Text>
-          {renderActivityText(item.type)}
-          <Text style={styles.timeText}>{item.time}</Text>
-        </Text>
-      </View>
-
-      {/* Kanan: Thumbnail Konten (Jika interaksi konten) ATAU Tombol Follow */}
-      <View style={styles.rightAction}>
-        {item.type === "follow" ? (
-          <Pressable style={styles.followButton}>
-            <Text style={styles.followButtonText}>Follow</Text>
-          </Pressable>
-        ) : (
-          item.postImage && <Image source={{ uri: item.postImage }} style={styles.postThumbnail} />
-        )}
-      </View>
-    </View>
-  ), []);
+  // Filter Tabs Render
+  const renderTab = (title: string, id: any, iconName?: any, color?: string) => {
+    const isActive = activeTab === id;
+    return (
+      <Pressable onPress={() => setActiveTab(id)} style={[styles.tabCapsule, isActive && styles.tabCapsuleActive]}>
+        {iconName && <Ionicons name={iconName} size={11} color={isActive ? "#FFF" : color} style={{ marginRight: 4 }} />}
+        <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{title}</Text>
+      </Pressable>
+    );
+  };
 
   return (
     <Screen scrollable={false}>
-      {/* Header Halaman */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Aktivitas</Text>
-      </View>
+      <Animated.View entering={FadeIn.duration(200)} style={styles.mainContainer}>
 
-      {/* List Aliran Aktivitas Akun */}
-      <FlatList
-        data={dummyActivityData}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-      />
+        {/* Header Section */}
+        <View style={styles.header}>
+          <View style={styles.headerMain}>
+            <Text style={styles.headerTitle}>Aktivitas</Text>
+            <View style={styles.headerActions}>
+              <Pressable onPress={markAllAsRead} style={({ pressed }) => [styles.headerButton, { opacity: pressed ? 0.6 : 1 }]}>
+                <Ionicons name="checkmark-done" size={20} color={Colors.light.primary} />
+              </Pressable>
+              <Pressable onPress={clearAllActivities} style={({ pressed }) => [styles.headerButton, { opacity: pressed ? 0.6 : 1 }]}>
+                <Ionicons name="trash-outline" size={20} color="#FF3B30" />
+              </Pressable>
+            </View>
+          </View>
+
+          {/* Filter Tabs */}
+          <View style={{ height: 44 }}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabsContainer} contentContainerStyle={styles.tabsContent}>
+              {renderTab("Semua", "semua")}
+              {renderTab("Suka", "suka", "heart", "#FF2D55")}
+              {renderTab("Komentar", "komentar", "chatbubble", "#34C759")}
+              {renderTab("Mengikuti", "mengikuti", "person-add", "#007AFF")}
+            </ScrollView>
+          </View>
+        </View>
+
+        {/* Activity List */}
+        <FlatList
+          data={filteredActivities}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.listContent}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          renderItem={({ item }) => (
+            <ActivityListItem
+              item={item}
+              isFollowing={followedUsers.includes(item.username)}
+              onPress={() => onRowPress(item)} // 👈 4. GANTI DENGAN FUNGSI WRAPPER BARU KITA
+              onToggleFollow={toggleFollow}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <View style={styles.emptyIconCircle}>
+                <Ionicons name="notifications-off-outline" size={48} color="#C7C7CC" />
+              </View>
+              <Text style={styles.emptyTitle}>Belum Ada Aktivitas</Text>
+              <Text style={styles.emptyText}>
+                {activeTab === "semua" ? "Interaksi baru dari pengikut Anda akan muncul di sini." : `Tidak ada aktivitas kategori "${activeTab}" saat ini.`}
+              </Text>
+            </View>
+          }
+        />
+      </Animated.View>
+
+      {/* Bottom Sheets */}
+      <CommentBottomSheet ref={commentSheetRef} postId={interactionPostId} />
+      <ShareToDMBottomSheet ref={shareSheetRef} postId={interactionPostId} />
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  header: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#f0f0f0",
-    backgroundColor: "#fff",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    color: Colors.light.text,
-  },
-  listContent: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-  },
-  activityCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#eee",
-  },
-  textContainer: {
-    flex: 1,
-    paddingHorizontal: 12,
-  },
-  activityText: {
-    fontSize: 14,
-    fontFamily: Fonts.regular,
-    color: Colors.light.text,
-    lineHeight: 18,
-  },
-  username: {
-    fontFamily: Fonts.bold,
-  },
-  timeText: {
-    color: "#8e8e93",
-    fontSize: 12,
-    fontFamily: Fonts.regular,
-  },
-  rightAction: {
-    justifyContent: "center",
-    alignItems: "flex-end",
-    width: 65,
-  },
-  postThumbnail: {
-    width: 40,
-    height: 40,
-    borderRadius: 4,
-    backgroundColor: "#eee",
-  },
-  followButton: {
-    backgroundColor: "#5F4BB6",
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-  },
-  followButtonText: {
-    color: "#fff",
-    fontSize: 12,
-    fontFamily: Fonts.bold,
-  },
-});

@@ -1,36 +1,33 @@
 import { Ionicons } from "@expo/vector-icons";
+import { ResizeMode, Video } from "expo-av";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
   Pressable,
-  StyleSheet,
   Text,
   TextInput,
   View
 } from "react-native";
 
 import { Colors } from "@/core/theme/colors";
-import { Fonts } from "@/core/theme/fonts";
-import { Shadows } from "@/core/theme/shadows";
 import { useCreatePost } from "@/hooks/post/useCreatePost";
 import Button from "@/presentation/components/Button";
 import Screen from "@/presentation/components/Screen";
-// 1. TAMBAHKAN IMPOR STORE AUTH DI SINI
 import { useAuthStore } from "@/store/authStore";
+import { useUploadStore } from "@/store/uploadStore";
+
+// IMPORT STYLING DARI FILE TERPISAH
+import { styles } from "@/domain/style/UploadStyles";
 
 const UploadContext = createContext<any>(null);
 
 function UploadContent() {
-  const [image, setImage] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
-
+  const { image, mediaType, setImage, caption, setCaption, clear } = useUploadStore();
   const { createPost, loading } = useContext(UploadContext);
-  
-  // 2. AMBIL DATA USER YANG SEDANG LOGIN SAAT INI
   const user = useAuthStore((state) => state.user);
 
   async function pickImage() {
@@ -41,6 +38,27 @@ function UploadContent() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      const asset = result.assets[0];
+      const isVideoType = asset.type === 'video' || asset.uri.endsWith('.mp4') || asset.uri.endsWith('.mov') || asset.uri.endsWith('.webm');
+      setImage(asset.uri, isVideoType ? 'video' : 'image');
+    }
+  }
+
+  async function takePhoto() {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert("Permission Denied", "We need camera permissions to take a photo.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
       aspect: [1, 1],
@@ -48,8 +66,57 @@ function UploadContent() {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri);
+      setImage(result.assets[0].uri, 'image');
     }
+  }
+
+  async function recordVideo() {
+    const permissionCamera = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionCamera.granted) {
+      Alert.alert("Permission Denied", "We need camera permission to record video.");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ["videos"],
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri, 'video');
+    }
+  }
+
+  function handleSelectImageOptions() {
+    Alert.alert(
+      "Pilih Media",
+      "Pilih sumber media untuk membuat postingan Anda.",
+      [
+        {
+          text: "Kamera",
+          onPress: () => {
+            Alert.alert(
+              "Mode Kamera",
+              "Mau ambil foto atau rekam video?",
+              [
+                { text: "Ambil Foto", onPress: takePhoto },
+                { text: "Rekam Video", onPress: recordVideo },
+                { text: "Batal", style: "cancel" },
+              ]
+            );
+          },
+        },
+        {
+          text: "Dari Galeri",
+          onPress: pickImage, 
+        },
+        {
+          text: "Batal",
+          style: "cancel",
+        },
+      ]
+    );
   }
 
   const handleUpload = async () => {
@@ -59,20 +126,20 @@ function UploadContent() {
     }
 
     try {
-      // 3. SUNTIKKAN DATA USER SECARA LENGKAP
       await createPost({
         userId: user?.id || 'temp-id',
-        username: user?.username || user?.nickname || 'My Account', // Mengganti Guest jadi nama akun asli
-        imageUrl: image, 
+        username: user?.username || user?.nickname || 'My Account',
+        imageUrl: image,
         caption: caption,
         likes: [],
         comments: 0,
-        createdAt: Date.now()
+        savedBy: [], // 👈 INTI PERBAIKAN: Buat array kosong untuk menampung bookmark
+        createdAt: Date.now(),
+        mediaType: mediaType || 'image',
       });
 
       Alert.alert("Success", "Your post has been uploaded!");
-      setImage(null);
-      setCaption("");
+      clear();
       router.replace("/feed");
     } catch (error) {
       Alert.alert("Upload Failed", "Something went wrong.");
@@ -84,16 +151,32 @@ function UploadContent() {
       <Text style={styles.title}>Create Post</Text>
 
       <Pressable
-        onPress={pickImage}
+        onPress={handleSelectImageOptions}
         disabled={loading}
         style={({ pressed }) => [
-    styles.imagePicker, // Style asli Anda
-    { opacity: pressed ? 0.8 : 1 } // 🌟 Efek redup saat ditekan di Android & Web
-  ]}
-
+          styles.imagePicker,
+          { opacity: pressed ? 0.8 : 1 }
+        ]}
       >
         {image ? (
-          <Image source={{ uri: image }} style={styles.image} />
+          <View style={styles.imageContainer}>
+            {mediaType === 'video' || image.endsWith('.mp4') || image.endsWith('.mov') || image.endsWith('.webm') ? (
+              <Video
+                source={{ uri: image }}
+                style={styles.videoStyle}
+                resizeMode={ResizeMode.COVER}
+                useNativeControls
+                isMuted
+                isLooping
+                shouldPlay
+              />
+            ) : (
+              <Image source={{ uri: image }} style={styles.image} />
+            )}
+            <Pressable style={styles.clearButton} onPress={() => setImage(null, null)}>
+              <Ionicons name="close" size={20} color="white" />
+            </Pressable>
+          </View>
         ) : (
           <>
             <Ionicons name="image-outline" size={70} color="#B7B7B7" />
@@ -140,17 +223,3 @@ export default function UploadScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  title: { fontSize: 30, fontFamily: Fonts.bold, color: Colors.light.text, marginBottom: 24 },
-  imagePicker: { height: 320, borderRadius: 24, backgroundColor: "#F5F5F7", justifyContent: "center", alignItems: "center", marginBottom: 20, ...Shadows.card },
-  image: { width: "100%", height: "100%", borderRadius: 24 },
-  pickText: { marginTop: 14, fontFamily: Fonts.medium, color: "#8A8A8A", fontSize: 16 },
-  card: { backgroundColor: "#FFFFFF", borderRadius: 22, padding: 18, marginBottom: 24, ...Shadows.card },
-  label: { fontFamily: Fonts.semiBold, color: Colors.light.text, marginBottom: 10, fontSize: 16 },
-  input: { minHeight: 110, textAlignVertical: "top", fontFamily: Fonts.regular, fontSize: 15, color: Colors.light.text },
-  counter: { alignSelf: "flex-end", marginTop: 10, fontFamily: Fonts.medium, color: "#9C9C9C" },
-  loadingWrapper: { alignItems: "center", marginVertical: 10 },
-  loadingText: { marginTop: 8, fontFamily: Fonts.medium, color: "#666" }
-});

@@ -1,125 +1,153 @@
-import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import React, { useMemo } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { BottomSheetModal } from "@gorhom/bottom-sheet";
+import React, { useMemo, useRef, useState } from "react";
+import { StyleSheet, View } from "react-native";
 
-import { Colors } from "@/core/theme/colors";
-import { Fonts } from "@/core/theme/fonts";
-import { Shadows } from "@/core/theme/shadows";
+import { PostRepository } from "@/data/repositories/PostRepository";
+import { CommentBottomSheet } from "@/presentation/components/CommentBottomSheet";
 import Screen from "@/presentation/components/Screen";
-import { useAuthStore } from "@/store/authStore";
+import { ShareToDMBottomSheet } from "@/presentation/components/ShareToDMBottomSheet";
+import { AuthState, useAuthStore } from "@/store/authStore";
 import { useFeedStore } from "@/store/feedStore";
 
-export default function ProfileScreen() {
-  const { user, logout } = useAuthStore();
-  const { posts } = useFeedStore();
 
-  // Saring kiriman milik pengguna ini saja secara efisien menggunakan useMemo
-  const myPosts = useMemo(() => {
+import { TabType } from "@/data/Profile/profileData";
+import { ConnectionsModal } from "./styles/ConnectionsModal";
+import { EditProfileModal } from "./styles/EditProfileModal";
+import { ProfileContent } from "./styles/ProfileContent";
+import { ProfileHeader } from "./styles/ProfileHeader";
+import { ProfileTabs } from "./styles/ProfileTabs";
+
+export default function ProfileScreen() {
+const { user, setUser, logout } = useAuthStore((state: AuthState) => state); // 👈 Tambah tipe state agar aman
+const { posts, setPosts } = useFeedStore();
+
+  const [activeTab, setActiveTab] = useState<TabType>("grid");
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isConnectionsModalVisible, setIsConnectionsModalVisible] = useState(false);
+  const [connectionsType, setConnectionsType] = useState<"followers" | "following">("followers");
+  const [interactionPostId, setInteractionPostId] = useState<string | null>(null);
+
+  const commentSheetRef = useRef<BottomSheetModal>(null);
+  const shareSheetRef = useRef<BottomSheetModal>(null);
+
+  const postRepository = useMemo(() => new PostRepository(), []);
+
+const myPosts = useMemo(() => {
     return posts.filter((post) => post.userId === user?.id);
   }, [posts, user]);
 
-  function handleLogout() {
-    logout(); // Mematikan sesi global otomatis memicu redirection Guard di _layout.tsx
+  // 2. Tambahkan Filter postingan yang DI-SAVE oleh user ini 👇
+  const savedPosts = useMemo(() => {
+    return posts.filter((post: any) => post.savedBy?.includes(user?.id || ""));
+  }, [posts, user]);
+
+  const openConnectionsModal = (type: "followers" | "following") => {
+    setConnectionsType(type);
+    setIsConnectionsModalVisible(true);
+  };
+
+  const handleLikeToggle = (id: string) => {
+    const updatedPosts = posts.map((p) => {
+      if (p.id === id) {
+        const isLiked = p.likes?.includes(user?.id || "");
+        const nextLikes = isLiked
+          ? p.likes.filter((uid) => uid !== user?.id)
+          : [...(p.likes || []), user?.id || ""];
+        return { ...p, likes: nextLikes };
+      }
+      return p;
+    });
+    setPosts(updatedPosts);
+  };
+
+ const handleSaveToggle = async (id: string) => {
+  // Ambil data postingan yang mau di-bookmark
+  const postToUpdate = posts.find((p: any) => p.id === id);
+  if (!postToUpdate) return;
+
+  const isSaved = postToUpdate.savedBy?.includes(user?.id || "") || false;
+
+  // 1. INTI PERBAIKAN: Petakan langsung dari variabel 'posts' di scope komponen
+  const updatedPosts = posts.map((p: any) => {
+    if (p.id === id) {
+      const nextSaved = isSaved
+        ? (p.savedBy || []).filter((uid: string) => uid !== user?.id)
+        : [...(p.savedBy || []), user?.id || ""];
+      return { ...p, savedBy: nextSaved };
+    }
+    return p;
+  });
+
+  // 2. Masukkan array hasil map langsung ke setPosts (tanpa callback function)
+  setPosts(updatedPosts);
+
+  // 3. Kirim update ke Firestore cloud di background
+  try {
+    await postRepository.toggleSavePost(id, user?.id || "", isSaved);
+  } catch (error) {
+    console.error("Gagal sinkronisasi bookmark ke database cloud:", error);
   }
+};
 
   return (
     <Screen scrollable={false}>
-      {/* Header Profil */}
-      <View style={styles.header}>
-        <View style={styles.avatarRow}>
-          <Image
-            source={{ uri: user?.avatarUrl || "https://picsum.photos/200" }}
-            style={styles.avatar}
-            cachePolicy="memory-disk"
+      <View style={{ flex: 1 }}>
+        <ProfileHeader
+          user={user}
+          postCount={myPosts.length}
+          onOpenEditProfile={() => setIsEditModalVisible(true)}
+          onOpenConnections={openConnectionsModal}
+          onLogout={logout}
+        />
+
+        <ProfileTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+
+        <View style={styles.tabContentContainer}>
+          <ProfileContent
+            activeTab={activeTab}
+            myPosts={myPosts}
+            savedPosts={savedPosts} // 👈 Kirim list postingan tersimpan
+            user={user}
+            onLikeToggle={handleLikeToggle}
+            onSaveToggle={handleSaveToggle} // 👈 Kirim fungsi save toggle
+            onCommentPress={(id) => {
+              setInteractionPostId(id);
+              commentSheetRef.current?.present();
+            }}
+            onSharePress={(id) => {
+              setInteractionPostId(id);
+              shareSheetRef.current?.present();
+            }}
           />
-          <View style={styles.statsContainer}>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{myPosts.length}</Text>
-              <Text style={styles.statLabel}>Posts</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{user?.followersCount ?? 0}</Text>
-              <Text style={styles.statLabel}>Followers</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statNumber}>{user?.followingCount ?? 0}</Text>
-              <Text style={styles.statLabel}>Following</Text>
-            </View>
-          </View>
         </View>
-
-        {/* 💡 PERUBAHAN DI SINI: Menyusun visual hierarki Nickname & Username */}
-        {/* 1. Menampilkan Nickname / Nama Asli sebagai nama utama (Tebal) */}
-        <Text style={styles.nickname}>
-          {user?.nickname || "ScaleGram User"}
-        </Text>
-
-        {/* 2. Menampilkan Username unik dengan prefix '@' di bawah Nickname */}
-        <Text style={styles.username}>
-          @{user?.username || "user_scalegram"}
-        </Text>
-
-        {/* 3. Menampilkan Email */}
-        <Text style={styles.email}>{user?.email}</Text>
-
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={18} color="#FF3B30" />
-          <Text style={styles.logoutText}>Sign Out</Text>
-        </Pressable>
       </View>
 
-      {/* Grid Postingan Pribadi */}
-      <FlatList
-        data={myPosts}
-        keyExtractor={(item) => item.id}
-        numColumns={3}
-        showsVerticalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <Image
-            source={{ uri: item.imageUrl }}
-            style={styles.gridImage}
-            cachePolicy="memory-disk"
-          />
-        )}
-        ListEmptyComponent={<Text style={styles.emptyText}>You haven't posted anything yet.</Text>}
-        contentContainerStyle={styles.gridContainer}
+      <EditProfileModal
+        isVisible={isEditModalVisible}
+        onClose={() => setIsEditModalVisible(false)}
+        user={user}
+        setUser={setUser}
       />
+
+      <ConnectionsModal
+        isVisible={isConnectionsModalVisible}
+        onClose={() => setIsConnectionsModalVisible(false)}
+        type={connectionsType}
+        user={user}
+        setUser={setUser}
+      />
+
+      <CommentBottomSheet ref={commentSheetRef} postId={interactionPostId} />
+      <ShareToDMBottomSheet ref={shareSheetRef} postId={interactionPostId} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { padding: 20, backgroundColor: "#FFF", borderRadius: 24, marginBottom: 16, ...Shadows.card },
-  avatarRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 14 },
-  avatar: { width: 86, height: 86, borderRadius: 43, borderWidth: 2, borderColor: Colors.light.primary },
-  statsContainer: { flexDirection: "row", flex: 1, justifyContent: "space-around", marginLeft: 20 },
-  statBox: { alignItems: "center" },
-  statNumber: { fontSize: 18, fontFamily: Fonts.bold, color: Colors.light.text },
-  statLabel: { fontSize: 12, fontFamily: Fonts.regular, color: "#8A8A8A", marginTop: 2 },
-
-  // 💡 GAYA BARU SINKRONISASI PROFIL:
-  nickname: {
-    fontSize: 22,
-    fontFamily: Fonts.bold,
-    color: Colors.light.text
+  tabContentContainer: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  username: {
-    fontSize: 15,
-    fontFamily: Fonts.medium,
-    color: "#666666", // Warna abu-abu redup agar estetik kontras dengan nickname
-    marginTop: 2,
-    marginBottom: 4
-  },
-  email: {
-    fontSize: 13,
-    fontFamily: Fonts.regular,
-    color: Colors.light.subText
-  },
-
-  logoutButton: { flexDirection: "row", alignItems: "center", justifyContent: "center", backgroundColor: "#FFF1F0", paddingVertical: 10, borderRadius: 12, marginTop: 16, gap: 6 },
-  logoutText: { color: "#FF3B30", fontFamily: Fonts.semiBold, fontSize: 14 },
-  gridContainer: { paddingHorizontal: 2 },
-  gridImage: { flex: 1 / 3, aspectRatio: 1, margin: 2, borderRadius: 8, backgroundColor: "#F4F5F7" },
-  emptyText: { textAlign: "center", marginTop: 40, color: "#999", fontFamily: Fonts.medium },
 });

@@ -8,4 +8,10 @@ export interface IPostRepository {
 
   getPosts(): Promise<Post[]>;
 
+  getPostById(postId: string): Promise<Post>;
+
+  updatePost(postId: string, caption: string): Promise<void>;
+
+  toggleSavePost(postId: string, userId: string, isCurrentlySaved: boolean): Promise<void>;
 }
+
