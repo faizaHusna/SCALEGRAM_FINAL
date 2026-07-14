@@ -60,7 +60,8 @@
           "audioPermission": "Izinkan ScaleGram mengakses audio untuk kebutuhan media.",
           "saveAudioPermission": "Izinkan ScaleGram menyimpan file audio Anda."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true
